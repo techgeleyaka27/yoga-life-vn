@@ -1,0 +1,38 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health.js";
+import authRouter from "./auth.js";
+import usersRouter from "./users.js";
+import centersRouter from "./centers.js";
+import membershipsRouter from "./memberships.js";
+import enrollmentsRouter from "./enrollments.js";
+import classesRouter from "./classes.js";
+import instructorsRouter from "./instructors.js";
+import contentRouter from "./content.js";
+import statsRouter from "./stats.js";
+import bookingsRouter from "./bookings.js";
+import teacherSchedulesRouter from "./teacher-schedules.js";
+import personalTrainingRouter from "./personal-training.js";
+import membersRouter from "./members.js";
+import cmsRouter from "./cms.js";
+import classDefinitionsRouter from "./class-definitions.js";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(authRouter);
+router.use(usersRouter);
+router.use(membersRouter);
+router.use(centersRouter);
+router.use(membershipsRouter);
+router.use(enrollmentsRouter);
+router.use(classesRouter);
+router.use(instructorsRouter);
+router.use(contentRouter);
+router.use(statsRouter);
+router.use(bookingsRouter);
+router.use(teacherSchedulesRouter);
+router.use(personalTrainingRouter);
+router.use(cmsRouter);
+router.use(classDefinitionsRouter);
+
+export default router;

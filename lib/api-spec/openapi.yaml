@@ -1,0 +1,1365 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: YOGA LIFE VN API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: centers
+    description: Yoga center/branch management
+  - name: memberships
+    description: Membership plan management
+  - name: enrollments
+    description: Member enrollments
+  - name: classes
+    description: Class scheduling
+  - name: instructors
+    description: Instructor management
+  - name: content
+    description: Website content management
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new student/member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user info
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (super admin only)
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [student, center_admin, super_admin]
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersListResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /centers:
+    get:
+      operationId: listCenters
+      tags: [centers]
+      summary: List all yoga centers/branches
+      responses:
+        "200":
+          description: List of centers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CentersListResponse"
+    post:
+      operationId: createCenter
+      tags: [centers]
+      summary: Create a new center/branch (super admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCenterRequest"
+      responses:
+        "201":
+          description: Created center
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Center"
+
+  /centers/{id}:
+    get:
+      operationId: getCenter
+      tags: [centers]
+      summary: Get center by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Center details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Center"
+    put:
+      operationId: updateCenter
+      tags: [centers]
+      summary: Update center
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCenterRequest"
+      responses:
+        "200":
+          description: Updated center
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Center"
+    delete:
+      operationId: deleteCenter
+      tags: [centers]
+      summary: Delete center
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /centers/{id}/assign-admin:
+    post:
+      operationId: assignCenterAdmin
+      tags: [centers]
+      summary: Assign admin to center (super admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignAdminRequest"
+      responses:
+        "200":
+          description: Admin assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /memberships:
+    get:
+      operationId: listMemberships
+      tags: [memberships]
+      summary: List membership plans
+      parameters:
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of membership plans
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MembershipsListResponse"
+    post:
+      operationId: createMembership
+      tags: [memberships]
+      summary: Create membership plan (center admin/super admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMembershipRequest"
+      responses:
+        "201":
+          description: Created membership plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Membership"
+
+  /memberships/{id}:
+    get:
+      operationId: getMembership
+      tags: [memberships]
+      summary: Get membership plan by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Membership details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Membership"
+    put:
+      operationId: updateMembership
+      tags: [memberships]
+      summary: Update membership plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMembershipRequest"
+      responses:
+        "200":
+          description: Updated membership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Membership"
+    delete:
+      operationId: deleteMembership
+      tags: [memberships]
+      summary: Delete membership plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /enrollments:
+    get:
+      operationId: listEnrollments
+      tags: [enrollments]
+      summary: List enrollments
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: integer
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+        - name: membershipId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of enrollments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollmentsListResponse"
+    post:
+      operationId: createEnrollment
+      tags: [enrollments]
+      summary: Enroll in a membership plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEnrollmentRequest"
+      responses:
+        "201":
+          description: Enrollment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+
+  /enrollments/{id}:
+    put:
+      operationId: updateEnrollment
+      tags: [enrollments]
+      summary: Update enrollment status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEnrollmentRequest"
+      responses:
+        "200":
+          description: Updated enrollment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+    delete:
+      operationId: deleteEnrollment
+      tags: [enrollments]
+      summary: Cancel enrollment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /classes:
+    get:
+      operationId: listClasses
+      tags: [classes]
+      summary: List classes
+      parameters:
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+        - name: instructorId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of classes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassesListResponse"
+    post:
+      operationId: createClass
+      tags: [classes]
+      summary: Create a class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Created class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YogaClass"
+
+  /classes/{id}:
+    put:
+      operationId: updateClass
+      tags: [classes]
+      summary: Update class
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassRequest"
+      responses:
+        "200":
+          description: Updated class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YogaClass"
+    delete:
+      operationId: deleteClass
+      tags: [classes]
+      summary: Delete class
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /instructors:
+    get:
+      operationId: listInstructors
+      tags: [instructors]
+      summary: List instructors
+      parameters:
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of instructors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstructorsListResponse"
+    post:
+      operationId: createInstructor
+      tags: [instructors]
+      summary: Create instructor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInstructorRequest"
+      responses:
+        "201":
+          description: Created instructor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Instructor"
+
+  /instructors/{id}:
+    put:
+      operationId: updateInstructor
+      tags: [instructors]
+      summary: Update instructor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInstructorRequest"
+      responses:
+        "200":
+          description: Updated instructor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Instructor"
+    delete:
+      operationId: deleteInstructor
+      tags: [instructors]
+      summary: Delete instructor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /content/hero:
+    get:
+      operationId: getHeroContent
+      tags: [content]
+      summary: Get hero section content
+      responses:
+        "200":
+          description: Hero content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeroContent"
+    put:
+      operationId: updateHeroContent
+      tags: [content]
+      summary: Update hero section content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeroContent"
+      responses:
+        "200":
+          description: Updated hero content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeroContent"
+
+  /content/testimonials:
+    get:
+      operationId: listTestimonials
+      tags: [content]
+      summary: List testimonials
+      responses:
+        "200":
+          description: List of testimonials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonialsListResponse"
+    post:
+      operationId: createTestimonial
+      tags: [content]
+      summary: Create testimonial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestimonialRequest"
+      responses:
+        "201":
+          description: Created testimonial
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimonial"
+
+  /content/testimonials/{id}:
+    delete:
+      operationId: deleteTestimonial
+      tags: [content]
+      summary: Delete testimonial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [users]
+      summary: Get dashboard statistics
+      parameters:
+        - name: centerId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+      required: [email, password, fullName]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [student, center_admin, super_admin]
+        centerId:
+          type: integer
+          nullable: true
+        centerName:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, email, fullName, role, createdAt]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [student, center_admin, super_admin]
+        centerId:
+          type: integer
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+
+    UsersListResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+      required: [users, total]
+
+    Center:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        adminId:
+          type: integer
+          nullable: true
+        adminName:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, address, city, phone, email, memberCount, createdAt]
+
+    CreateCenterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+      required: [name, address, city, phone, email]
+
+    UpdateCenterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+
+    AssignAdminRequest:
+      type: object
+      properties:
+        userId:
+          type: integer
+      required: [userId]
+
+    CentersListResponse:
+      type: object
+      properties:
+        centers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Center"
+        total:
+          type: integer
+      required: [centers, total]
+
+    Membership:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+        durationDays:
+          type: integer
+        classesPerWeek:
+          type: integer
+          nullable: true
+        centerId:
+          type: integer
+        centerName:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, name, price, durationDays, centerId, centerName, features, isActive, createdAt]
+
+    CreateMembershipRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+        durationDays:
+          type: integer
+        classesPerWeek:
+          type: integer
+          nullable: true
+        centerId:
+          type: integer
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+      required: [name, price, durationDays, centerId, features]
+
+    UpdateMembershipRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        price:
+          type: number
+        durationDays:
+          type: integer
+        classesPerWeek:
+          type: integer
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+
+    MembershipsListResponse:
+      type: object
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: "#/components/schemas/Membership"
+        total:
+          type: integer
+      required: [memberships, total]
+
+    Enrollment:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userFullName:
+          type: string
+        userEmail:
+          type: string
+        membershipId:
+          type: integer
+        membershipName:
+          type: string
+        centerId:
+          type: integer
+        centerName:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, cancelled, pending]
+        amountPaid:
+          type: number
+        createdAt:
+          type: string
+      required: [id, userId, userFullName, userEmail, membershipId, membershipName, centerId, centerName, startDate, endDate, status, amountPaid, createdAt]
+
+    CreateEnrollmentRequest:
+      type: object
+      properties:
+        userId:
+          type: integer
+        membershipId:
+          type: integer
+        startDate:
+          type: string
+        amountPaid:
+          type: number
+      required: [membershipId, startDate, amountPaid]
+
+    UpdateEnrollmentRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, expired, cancelled, pending]
+        endDate:
+          type: string
+
+    EnrollmentsListResponse:
+      type: object
+      properties:
+        enrollments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Enrollment"
+        total:
+          type: integer
+      required: [enrollments, total]
+
+    YogaClass:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        instructorId:
+          type: integer
+          nullable: true
+        instructorName:
+          type: string
+          nullable: true
+        centerId:
+          type: integer
+        centerName:
+          type: string
+        dayOfWeek:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced, all_levels]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, name, centerId, centerName, dayOfWeek, startTime, endTime, capacity, level, isActive, createdAt]
+
+    CreateClassRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        instructorId:
+          type: integer
+          nullable: true
+        centerId:
+          type: integer
+        dayOfWeek:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced, all_levels]
+        isActive:
+          type: boolean
+      required: [name, centerId, dayOfWeek, startTime, endTime, capacity, level]
+
+    UpdateClassRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        instructorId:
+          type: integer
+          nullable: true
+        dayOfWeek:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        level:
+          type: string
+          enum: [beginner, intermediate, advanced, all_levels]
+        isActive:
+          type: boolean
+
+    ClassesListResponse:
+      type: object
+      properties:
+        classes:
+          type: array
+          items:
+            $ref: "#/components/schemas/YogaClass"
+        total:
+          type: integer
+      required: [classes, total]
+
+    Instructor:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        specialties:
+          type: array
+          items:
+            type: string
+        experience:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        centerId:
+          type: integer
+        centerName:
+          type: string
+        createdAt:
+          type: string
+      required: [id, fullName, specialties, centerId, centerName, createdAt]
+
+    CreateInstructorRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        specialties:
+          type: array
+          items:
+            type: string
+        experience:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        centerId:
+          type: integer
+      required: [fullName, centerId, specialties]
+
+    UpdateInstructorRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        bio:
+          type: string
+          nullable: true
+        specialties:
+          type: array
+          items:
+            type: string
+        experience:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+
+    InstructorsListResponse:
+      type: object
+      properties:
+        instructors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Instructor"
+        total:
+          type: integer
+      required: [instructors, total]
+
+    HeroContent:
+      type: object
+      properties:
+        headline:
+          type: string
+        subheadline:
+          type: string
+        ctaText:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+      required: [headline, subheadline, ctaText]
+
+    Testimonial:
+      type: object
+      properties:
+        id:
+          type: integer
+        authorName:
+          type: string
+        authorRole:
+          type: string
+          nullable: true
+        content:
+          type: string
+        rating:
+          type: integer
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, authorName, content, rating, createdAt]
+
+    CreateTestimonialRequest:
+      type: object
+      properties:
+        authorName:
+          type: string
+        authorRole:
+          type: string
+          nullable: true
+        content:
+          type: string
+        rating:
+          type: integer
+        avatarUrl:
+          type: string
+          nullable: true
+      required: [authorName, content, rating]
+
+    TestimonialsListResponse:
+      type: object
+      properties:
+        testimonials:
+          type: array
+          items:
+            $ref: "#/components/schemas/Testimonial"
+        total:
+          type: integer
+      required: [testimonials, total]
+
+    StatsResponse:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+        activeEnrollments:
+          type: integer
+        totalCenters:
+          type: integer
+        totalClasses:
+          type: integer
+        revenue:
+          type: number
+        newMembersThisMonth:
+          type: integer
+      required: [totalMembers, activeEnrollments, totalCenters, totalClasses, revenue, newMembersThisMonth]

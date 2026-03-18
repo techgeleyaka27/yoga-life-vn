@@ -1,0 +1,24 @@
+packages:
+  "framer-motion": "For premium page transitions and scroll animations"
+  "recharts": "For admin dashboard analytics"
+  "date-fns": "For formatting class and enrollment dates"
+  "clsx": "For conditional class merging"
+  "tailwind-merge": "For conditional tailwind class merging"
+
+images:
+  - path: "artifacts/yoga-life-vn/public/images/hero-yoga.png"
+    description: "A serene, beautifully lit yoga studio with warm sunlight streaming through large windows, minimalist aesthetic, natural wood floors, lush green plants, premium feel"
+    aspect_ratio: "16:9"
+  - path: "artifacts/yoga-life-vn/public/images/logo.png"
+    description: "Elegant, minimalist lotus flower line art logo in deep green, transparent background, luxury wellness brand"
+    aspect_ratio: "1:1"
+  - path: "artifacts/yoga-life-vn/public/images/abstract-leaf.png"
+    description: "Subtle, abstract botanical leaf pattern, earthy green and warm sand tones, soft water color texture, background element"
+    aspect_ratio: "1:1"
+  - path: "artifacts/yoga-life-vn/public/images/auth-bg.png"
+    description: "Close up of folded soft linen towels and a smooth meditation stone, warm neutral tones, soft focus, highly aesthetic wellness"
+    aspect_ratio: "3:4"
+
+notes:
+  - Authentication expects a Bearer token in the Authorization header. Overriding window.fetch to automatically inject it.
+  - Using generated hooks from @workspace/api-client-react for all API interactions.
