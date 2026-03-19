@@ -8,3 +8,4 @@ export * from "./content";
 export * from "./bookings";
 export * from "./teacher_schedules";
 export * from "./pt_bookings";
+export * from "./password_resets";

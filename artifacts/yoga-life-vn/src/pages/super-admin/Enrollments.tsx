@@ -53,6 +53,8 @@ export default function SuperAdminEnrollments() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
+  const [selectedDurationMonths, setSelectedDurationMonths] = useState("1");
 
   const enrollments = data?.enrollments || [];
 
@@ -85,8 +87,12 @@ export default function SuperAdminEnrollments() {
           userId: Number(selectedUser),
           membershipId: Number(selectedMembership),
           startDate: fd.get("startDate") as string,
-          amountPaid: parseFloat(fd.get("amountPaid") as string),
-        },
+          amountPaid: parseFloat(fd.get("amountPaid") as string) || 0,
+          debtAmount: parseFloat(fd.get("debtAmount") as string) || 0,
+          paymentMethod: selectedPaymentMethod || null,
+          salesPerson: (fd.get("salesPerson") as string) || null,
+          packageDurationMonths: parseInt(selectedDurationMonths) || 1,
+        } as any,
       });
       await queryClient.invalidateQueries({ queryKey: ["/api/enrollments"] });
       setIsCreateOpen(false);
@@ -172,8 +178,36 @@ export default function SuperAdminEnrollments() {
                   <Input name="startDate" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />
                 </div>
                 <div className="space-y-2">
+                  <Label>Package Duration (months)</Label>
+                  <Select value={selectedDurationMonths} onValueChange={setSelectedDurationMonths}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {[1,2,3,6,12].map(m => <SelectItem key={m} value={String(m)}>{m} month{m > 1 ? "s" : ""}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label>Amount Paid (VND)</Label>
-                  <Input name="amountPaid" type="number" placeholder="800000" required />
+                  <Input name="amountPaid" type="number" placeholder="800000" min={0} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Debt Amount (VND)</Label>
+                  <Input name="debtAmount" type="number" placeholder="0" min={0} defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sales Person</Label>
+                  <Input name="salesPerson" placeholder="Staff name (optional)" />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>

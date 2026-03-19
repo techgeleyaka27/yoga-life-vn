@@ -93,3 +93,16 @@ export const classDefinitionsTable = pgTable("class_definitions", {
 export const insertClassDefinitionSchema = createInsertSchema(classDefinitionsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertClassDefinition = z.infer<typeof insertClassDefinitionSchema>;
 export type ClassDefinition = typeof classDefinitionsTable.$inferSelect;
+
+export const trainingApplicationsTable = pgTable("training_applications", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  program: text("program").notNull(),
+  message: text("message"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type TrainingApplication = typeof trainingApplicationsTable.$inferSelect;

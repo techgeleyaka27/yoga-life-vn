@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { bookingsTable, classesTable, usersTable } from "@workspace/db/schema";
+import { bookingsTable, classesTable, usersTable, enrollmentsTable, membershipsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
@@ -68,9 +68,23 @@ router.post("/bookings", requireAuth, async (req, res) => {
     const [cls] = await db.select().from(classesTable).where(eq(classesTable.id, Number(classId))).limit(1);
     if (!cls) { res.status(404).json({ error: "Class not found" }); return; }
 
+    // Check that user has an active in-studio/both/drop_in enrollment
+    const now = new Date();
+    const activeEnrollments = await db.select().from(enrollmentsTable)
+      .where(and(eq(enrollmentsTable.userId, reqUserId), eq(enrollmentsTable.status, "active")));
+    const allMemberships = await db.select().from(membershipsTable);
+    const membershipMap = new Map(allMemberships.map(m => [m.id, m]));
+    const hasOfflineAccess = activeEnrollments.some(e => {
+      const m = membershipMap.get(e.membershipId);
+      return m && ["offline", "both", "drop_in"].includes(m.type as string) && new Date(e.endDate) > now;
+    });
+    if (!hasOfflineAccess) {
+      res.status(403).json({ error: "You need an active In-Studio or Online + Studio membership to book offline classes" });
+      return;
+    }
+
     // Check booking window: must be at least 24h in advance
     const classStart = classDateTime(bookingDate, cls.startTime);
-    const now = new Date();
     const hoursUntilClass = (classStart.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     if (hoursUntilClass < 24) {

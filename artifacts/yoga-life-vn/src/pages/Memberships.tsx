@@ -4,7 +4,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useListMemberships, useListEnrollments, useCreateEnrollment } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2, Wifi, MapPin, Sparkles, Zap, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Check, Loader2, Wifi, MapPin, Sparkles, Zap, CheckCircle2, Video, BookOpen, X } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,7 @@ export default function Memberships() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [loading, setLoading] = useState<number | null>(null);
+  const [successPlan, setSuccessPlan] = useState<any>(null);
 
   const { data, isLoading } = useListMemberships();
   const { data: enrollmentsData } = useListEnrollments(
@@ -56,7 +58,7 @@ export default function Memberships() {
         }
       });
       await qc.invalidateQueries();
-      toast({ title: "Membership activated!", description: `${plan.name} is now active on your account.` });
+      setSuccessPlan(plan);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Error", description: err?.message ?? "Please try again." });
     } finally {
@@ -74,6 +76,69 @@ export default function Memberships() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+
+      {/* Purchase Success Dialog */}
+      {successPlan && (() => {
+        const type = (successPlan as any).type as string;
+        const meta = TYPE_META[type] || TYPE_META.offline;
+        const Icon = meta.icon;
+        const canOnline = ["online", "both"].includes(type);
+        const canOffline = ["offline", "both", "drop_in"].includes(type);
+        return (
+          <Dialog open onOpenChange={() => setSuccessPlan(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-serif text-xl flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />Membership Activated!
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className={`flex items-center gap-3 p-4 rounded-xl border ${meta.bgColor}`}>
+                  <Icon className={`w-6 h-6 shrink-0 ${meta.color}`} />
+                  <div>
+                    <p className="font-bold text-foreground">{successPlan.name}</p>
+                    <p className={`text-sm font-medium ${meta.color}`}>{meta.label}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">What you can access now:</p>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${canOnline ? "bg-blue-50 text-blue-700" : "bg-muted/40 text-muted-foreground"}`}>
+                    <Video className="w-4 h-4 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Online Classes (On-Demand)</p>
+                      <p className="text-xs">{canOnline ? "✓ Included — watch anytime" : "✗ Not included in this plan"}</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg ${canOffline ? "bg-green-50 text-green-700" : "bg-muted/40 text-muted-foreground"}`}>
+                    <BookOpen className="w-4 h-4 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">In-Studio Class Bookings</p>
+                      <p className="text-xs">{canOffline ? "✓ Included — book classes at the center" : "✗ Not included in this plan"}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  {canOnline && (
+                    <Link href="/online-classes" className="flex-1">
+                      <Button variant="outline" className="w-full gap-2 text-blue-600 border-blue-200" onClick={() => setSuccessPlan(null)}>
+                        <Video className="w-4 h-4" />Watch Now
+                      </Button>
+                    </Link>
+                  )}
+                  {canOffline && (
+                    <Link href="/classes" className="flex-1">
+                      <Button variant="outline" className="w-full gap-2 text-green-600 border-green-200" onClick={() => setSuccessPlan(null)}>
+                        <BookOpen className="w-4 h-4" />Book a Class
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+                <Button className="w-full" onClick={() => setSuccessPlan(null)}>Go to My Dashboard</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">

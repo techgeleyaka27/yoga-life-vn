@@ -214,7 +214,7 @@ router.put("/cms/hero-image", requireAuth, async (req, res) => {
     } else {
       await db.insert(heroContentTable).values({
         headline: "Find Your Inner Peace",
-        subheadline: "Join YOGA LIFE VN for a transformative yoga journey.",
+        subheadline: "Join YOGA LIFE INTERNATIONAL for a transformative yoga journey.",
         ctaText: "Start Your Journey",
         imageUrl,
       });

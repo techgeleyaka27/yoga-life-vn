@@ -6,6 +6,20 @@ import { requireAuth, hashPassword } from "../lib/auth.js";
 
 const router: IRouter = Router();
 
+router.get("/users/lookup", requireAuth, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) { res.status(400).json({ error: "email required" }); return; }
+    const [user] = await db.select().from(usersTable)
+      .where(eq(usersTable.email, String(email).toLowerCase().trim())).limit(1);
+    if (!user) { res.status(404).json({ error: "No account found with that email" }); return; }
+    res.json({ id: user.id, email: user.email, fullName: user.fullName, phone: user.phone ?? "", role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/users", requireAuth, async (req, res) => {
   try {
     const { role, centerId } = req.query;

@@ -6,12 +6,14 @@ import { UserRole } from "@workspace/api-client-react";
 import { LogOut, User as UserIcon, Menu, Wifi, Dumbbell } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteLogo } from "@/lib/useSiteLogo";
 
 export function Navbar() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { lang, setLang, t } = useLang();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const logoUrl = useSiteLogo();
 
   if (location.startsWith('/super-admin') || location.startsWith('/center-admin')) {
     return null;
@@ -40,12 +42,12 @@ export function Navbar() {
         <div className="flex justify-between items-center h-20">
           <Link href="/" className="flex items-center gap-3 group">
             <img
-              src={`${import.meta.env.BASE_URL}images/logo.png`}
-              alt="Yoga Life VN"
+              src={logoUrl}
+              alt="Yoga Life International"
               className="h-10 w-10 object-contain group-hover:scale-105 transition-transform"
             />
             <span className="font-serif text-2xl font-bold tracking-wide text-primary">
-              YOGA LIFE
+              YOGA LIFE INTERNATIONAL
             </span>
           </Link>
 

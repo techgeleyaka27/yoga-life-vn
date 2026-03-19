@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { UserRole, useGetHeroContent, useUpdateHeroContent, useListTestimonials, useCreateTestimonial, useDeleteTestimonial, useListCenters } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Star, Save, Palette, Video, FileText, Edit, Play, ExternalLink, Upload, ImageIcon, Users, Building2, X, Camera } from "lucide-react";
+import { Plus, Trash2, Star, Save, Palette, Video, FileText, Edit, Play, ExternalLink, Upload, ImageIcon, Users, Building2, X, Camera, ImagePlus } from "lucide-react";
+import { clearLogoCache } from "@/lib/useSiteLogo";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,8 +75,8 @@ function ImageUploadButton({ currentUrl, onUpload, label = "Change Photo", class
   return (
     <div className={`relative group ${className}`}>
       {currentUrl ? (
-        <div className="relative rounded-xl overflow-hidden">
-          <img src={currentUrl} alt="Preview" className="w-full h-full object-cover" />
+        <div className="relative rounded-xl overflow-hidden w-full h-full">
+          <img src={currentUrl} alt="Preview" className="w-full h-full object-contain bg-muted/30" />
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} disabled={uploading}
               className="gap-1.5">
@@ -93,6 +94,136 @@ function ImageUploadButton({ currentUrl, onUpload, label = "Change Photo", class
           <Upload className="w-6 h-6" />
           <span className="text-sm font-medium">{uploading ? "Uploading..." : label}</span>
           <span className="text-xs">JPG, PNG, WebP up to 10MB</span>
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  );
+}
+
+// ─── Draggable Photo Upload (for teacher photos) ─────────────────────────────
+function DraggablePhotoUpload({ currentUrl, onUpload, position, onPositionChange, className = "h-48" }: {
+  currentUrl?: string | null;
+  onUpload: (url: string) => void;
+  position?: string | null;
+  onPositionChange: (pos: string) => void;
+  className?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const { toast } = useToast();
+  const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+
+  const parsePos = (pos: string | null | undefined): [number, number] => {
+    if (!pos) return [50, 20];
+    const parts = pos.replace(/%/g, "").trim().split(/\s+/);
+    return [parseFloat(parts[0]) || 50, parseFloat(parts[1]) || 20];
+  };
+
+  const [px, py] = parsePos(position);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!currentUrl) return;
+    e.preventDefault();
+    dragStart.current = { mx: e.clientX, my: e.clientY, px, py };
+    setDragging(true);
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragStart.current || !boxRef.current) return;
+    const rect = boxRef.current.getBoundingClientRect();
+    const dx = e.clientX - dragStart.current.mx;
+    const dy = e.clientY - dragStart.current.my;
+    // Invert: dragging right moves focal point left (photo shifts right)
+    const newPx = Math.min(100, Math.max(0, dragStart.current.px - (dx / rect.width) * 100));
+    const newPy = Math.min(100, Math.max(0, dragStart.current.py - (dy / rect.height) * 100));
+    onPositionChange(`${Math.round(newPx)}% ${Math.round(newPy)}%`);
+  }, [onPositionChange]);
+
+  const handleMouseUp = useCallback(() => {
+    dragStart.current = null;
+    setDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (dragging) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging, handleMouseMove, handleMouseUp]);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      onUpload(url);
+      toast({ title: "Photo uploaded" });
+    } catch {
+      toast({ variant: "destructive", title: "Upload failed" });
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className={`relative group rounded-xl overflow-hidden border border-border bg-muted/30 ${className}`}
+      ref={boxRef}
+      onMouseDown={handleMouseDown}
+      style={{ cursor: currentUrl ? (dragging ? "grabbing" : "grab") : "default" }}
+    >
+      {currentUrl ? (
+        <>
+          <img
+            src={currentUrl}
+            alt="Preview"
+            className="w-full h-full object-cover pointer-events-none select-none"
+            style={{ objectPosition: position || "50% 20%" }}
+            draggable={false}
+          />
+          {/* Drag hint */}
+          <div className="absolute top-2 left-2 right-2 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm flex items-center gap-1">
+              ✋ Drag to reposition
+            </span>
+          </div>
+          {/* Upload button */}
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="sm" variant="secondary"
+              className="h-7 text-xs gap-1 pointer-events-auto"
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+            >
+              <Camera className="w-3 h-3" />{uploading ? "Uploading..." : "Change Photo"}
+            </Button>
+          </div>
+          {/* Position indicator */}
+          <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm">
+              {Math.round(px)}% {Math.round(py)}%
+            </span>
+          </div>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Upload className="w-6 h-6" />
+          <span className="text-sm font-medium">{uploading ? "Uploading..." : "Upload Profile Photo"}</span>
+          <span className="text-xs">JPG, PNG up to 10MB</span>
         </button>
       )}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
@@ -131,6 +262,7 @@ interface OnlineClass {
 interface Teacher {
   id: number; name: string; title: string; bio: string;
   certifications: string; styles: string[]; photoUrl?: string | null;
+  photoPosition?: string | null;
   displayOrder: number; isActive: boolean;
 }
 
@@ -142,7 +274,7 @@ const emptyClass = (): Partial<OnlineClass> => ({
 
 const emptyTeacher = (): Partial<Teacher> => ({
   name: "", title: "", bio: "", certifications: "", styles: [],
-  photoUrl: null, displayOrder: 0, isActive: true,
+  photoUrl: null, photoPosition: "50% 20%", displayOrder: 0, isActive: true,
 });
 
 export default function SuperAdminContent() {
@@ -167,6 +299,10 @@ export default function SuperAdminContent() {
     });
   }, [hero]);
 
+  // Logo
+  const [logoFormUrl, setLogoFormUrl] = useState("");
+  const [savingLogo, setSavingLogo] = useState(false);
+
   // Brand
   const [selectedColor, setSelectedColor] = useState<typeof PRESET_COLORS[0] | null>(null);
   const [selectedFont, setSelectedFont] = useState<typeof PRESET_FONTS[0] | null>(null);
@@ -175,6 +311,7 @@ export default function SuperAdminContent() {
     apiFetch("GET", "/cms/settings").then(({ settings }) => {
       if (settings?.primaryColor) setSelectedColor(PRESET_COLORS.find(c => c.primary === settings.primaryColor) || null);
       if (settings?.fontName) setSelectedFont(PRESET_FONTS.find(f => f.name === settings.fontName) || null);
+      if (settings?.logo_url) setLogoFormUrl(settings.logo_url);
     });
   }, []);
 
@@ -229,6 +366,20 @@ export default function SuperAdminContent() {
       toast({ variant: "destructive", title: "Error saving" });
     } finally {
       setSavingHero(false);
+    }
+  };
+
+  const handleSaveLogo = async () => {
+    if (!logoFormUrl) return;
+    setSavingLogo(true);
+    try {
+      await apiFetch("PUT", "/cms/settings", { settings: { logo_url: logoFormUrl } });
+      clearLogoCache();
+      toast({ title: "Logo saved — refresh the page to see it in the header" });
+    } catch {
+      toast({ variant: "destructive", title: "Error saving logo" });
+    } finally {
+      setSavingLogo(false);
     }
   };
 
@@ -433,7 +584,7 @@ export default function SuperAdminContent() {
                   </div>
                   <div className="space-y-2">
                     <Label>Sub-headline</Label>
-                    <Textarea value={heroForm.subheadline} onChange={e => setHeroForm(h => ({...h, subheadline: e.target.value}))} className="resize-none h-24" placeholder="Join YOGA LIFE VN..." />
+                    <Textarea value={heroForm.subheadline} onChange={e => setHeroForm(h => ({...h, subheadline: e.target.value}))} className="resize-none h-24" placeholder="Join YOGA LIFE INTERNATIONAL..." />
                   </div>
                   <div className="space-y-2">
                     <Label>Button Text</Label>
@@ -467,6 +618,44 @@ export default function SuperAdminContent() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Site Logo */}
+            <Card className="border-none premium-shadow mt-6">
+              <CardHeader>
+                <CardTitle className="font-serif flex items-center gap-2">
+                  <ImagePlus className="w-4 h-4 text-primary" />Site Logo
+                </CardTitle>
+                <CardDescription>The logo that appears in the navigation bar, login page, and footer. Upload a PNG or SVG with transparent background for best results.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  <div className="flex-1 space-y-4">
+                    <ImageUploadButton
+                      currentUrl={logoFormUrl}
+                      onUpload={url => setLogoFormUrl(url)}
+                      label="Upload Logo"
+                      className="h-32"
+                    />
+                    <div className="space-y-2">
+                      <Label>Or paste a logo URL</Label>
+                      <Input value={logoFormUrl} onChange={e => setLogoFormUrl(e.target.value)} placeholder="https://..." />
+                    </div>
+                    <Button onClick={handleSaveLogo} disabled={savingLogo || !logoFormUrl}>
+                      <Save className="w-4 h-4 mr-2" />{savingLogo ? "Saving..." : "Save Logo"}
+                    </Button>
+                  </div>
+                  {logoFormUrl && (
+                    <div className="shrink-0 flex flex-col items-center gap-2">
+                      <p className="text-xs text-muted-foreground">Preview</p>
+                      <div className="w-24 h-24 rounded-xl bg-muted flex items-center justify-center p-3 border border-border">
+                        <img src={logoFormUrl} alt="Logo preview" className="max-w-full max-h-full object-contain" />
+                      </div>
+                      <p className="text-xs text-muted-foreground/60">40×40px in nav</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ─── Teachers ─────────────────────────────────────────── */}
@@ -486,7 +675,7 @@ export default function SuperAdminContent() {
                     <div className="flex gap-4 p-4">
                       <div className="relative group w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-muted cursor-pointer" onClick={() => openEditTeacher(teacher)}>
                         {teacher.photoUrl
-                          ? <img src={teacher.photoUrl} alt={teacher.name} className="w-full h-full object-cover object-top" />
+                          ? <img src={teacher.photoUrl} alt={teacher.name} className="w-full h-full object-cover" style={{ objectPosition: (teacher as any).photoPosition || "50% 20%" }} />
                           : <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-primary/40">{teacher.name.charAt(0)}</div>
                         }
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -527,13 +716,16 @@ export default function SuperAdminContent() {
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2">
                     <Label>Profile Photo</Label>
-                    <ImageUploadButton
+                    <DraggablePhotoUpload
                       currentUrl={teacherForm.photoUrl}
                       onUpload={url => setTeacherForm(f => ({...f, photoUrl: url}))}
-                      label="Upload Profile Photo"
-                      className="h-40"
+                      position={teacherForm.photoPosition}
+                      onPositionChange={pos => setTeacherForm(f => ({...f, photoPosition: pos}))}
+                      className="h-48"
                     />
-                    <Input value={teacherForm.photoUrl || ""} onChange={e => setTeacherForm(f => ({...f, photoUrl: e.target.value}))} placeholder="Or paste a photo URL" className="text-xs" />
+                    {!teacherForm.photoUrl && (
+                      <Input value={teacherForm.photoUrl || ""} onChange={e => setTeacherForm(f => ({...f, photoUrl: e.target.value}))} placeholder="Or paste a photo URL" className="text-xs" />
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
@@ -785,7 +977,7 @@ export default function SuperAdminContent() {
                 <DialogHeader><DialogTitle className="font-serif">Add Customer Review</DialogTitle></DialogHeader>
                 <form onSubmit={handleCreateTestimonial} className="space-y-4 pt-2">
                   <div className="space-y-2"><Label>Customer Name</Label><Input name="authorName" placeholder="Nguyễn Thị Lan" required /></div>
-                  <div className="space-y-2"><Label>Title / Description</Label><Input name="authorRole" placeholder="Member at YOGA LIFE VN" /></div>
+                  <div className="space-y-2"><Label>Title / Description</Label><Input name="authorRole" placeholder="Member at YOGA LIFE INTERNATIONAL" /></div>
                   <div className="space-y-2"><Label>Review Text</Label><Textarea name="content" className="resize-none h-24" required /></div>
                   <div className="space-y-2"><Label>Star Rating (1–5)</Label><Input name="rating" type="number" min="1" max="5" defaultValue="5" /></div>
                   <div className="flex justify-end gap-2">

@@ -15,6 +15,9 @@ import personalTrainingRouter from "./personal-training.js";
 import membersRouter from "./members.js";
 import cmsRouter from "./cms.js";
 import classDefinitionsRouter from "./class-definitions.js";
+import financeRouter from "./finance.js";
+import notificationsRouter from "./notifications.js";
+import trainingApplicationsRouter from "./training-applications.js";
 
 const router: IRouter = Router();
 
@@ -34,5 +37,8 @@ router.use(teacherSchedulesRouter);
 router.use(personalTrainingRouter);
 router.use(cmsRouter);
 router.use(classDefinitionsRouter);
+router.use(financeRouter);
+router.use(notificationsRouter);
+router.use(trainingApplicationsRouter);
 
 export default router;

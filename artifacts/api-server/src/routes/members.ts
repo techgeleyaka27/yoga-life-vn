@@ -154,14 +154,15 @@ router.post("/members", requireAuth, async (req, res) => {
 
 router.put("/members/:enrollmentId", requireAuth, async (req, res) => {
   try {
-    const { status, amountPaid, debtAmount, paymentMethod, salesPerson, activationDate } = req.body;
+    const { status, amountPaid, debtAmount, paymentMethod, salesPerson, activationDate, endDate } = req.body;
     const [updated] = await db.update(enrollmentsTable).set({
       ...(status !== undefined && { status }),
       ...(amountPaid !== undefined && { amountPaid: Number(amountPaid) }),
       ...(debtAmount !== undefined && { debtAmount: Number(debtAmount) }),
       ...(paymentMethod !== undefined && { paymentMethod }),
       ...(salesPerson !== undefined && { salesPerson }),
-      ...(activationDate !== undefined && { activationDate: new Date(activationDate) }),
+      ...(activationDate !== undefined && activationDate && { activationDate: new Date(activationDate) }),
+      ...(endDate !== undefined && endDate && { endDate: new Date(endDate) }),
     }).where(eq(enrollmentsTable.id, Number(req.params.enrollmentId))).returning();
     if (!updated) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ success: true });

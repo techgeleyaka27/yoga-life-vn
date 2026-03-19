@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "YOGA LIFE VN"
+version = "1.0.0"
+id = "artifacts/yoga-life-vn"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 25545
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/yoga-life-vn run dev"
+
+[services.env]
+PORT = "25545"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/yoga-life-vn", "run", "build"]
+publicDir = "artifacts/yoga-life-vn/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

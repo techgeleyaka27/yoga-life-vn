@@ -1,12 +1,18 @@
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
+import { useSiteLogo } from "@/lib/useSiteLogo";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useGetHeroContent, useListTestimonials, useListCenters } from "@workspace/api-client-react";
-import { ArrowRight, MapPin, Star, Heart, Calendar as CalendarIcon, Users, Award, BookOpen, Globe, CheckCircle2 } from "lucide-react";
+import { ArrowRight, MapPin, Star, Heart, Calendar as CalendarIcon, Users, Award, BookOpen, Globe, CheckCircle2, Send, Loader2 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { useLang } from "@/lib/lang-context";
+import { useToast } from "@/hooks/use-toast";
 
 interface DbTeacher {
   id: number; name: string; title: string; bio: string;
@@ -56,10 +62,42 @@ const TRAINING_PROGRAMS = [
 
 export default function Home() {
   const { t } = useLang();
+  const { toast } = useToast();
+  const logoUrl = useSiteLogo();
   const { data: heroData } = useGetHeroContent();
   const { data: testimonialsData } = useListTestimonials();
   const { data: centersData } = useListCenters();
   const [teachers, setTeachers] = useState<DbTeacher[]>([]);
+  const [applyProgram, setApplyProgram] = useState<{ hours: number; title: string } | null>(null);
+  const [applySubmitting, setApplySubmitting] = useState(false);
+  const [applyDone, setApplyDone] = useState(false);
+
+  const handleApplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!applyProgram) return;
+    setApplySubmitting(true);
+    const fd = new FormData(e.currentTarget);
+    try {
+      const base = (import.meta.env.BASE_URL || "").replace(/\/$/, "");
+      const res = await fetch(`${base}/api/training-applications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: fd.get("fullName"),
+          email: fd.get("email"),
+          phone: fd.get("phone"),
+          program: applyProgram.title,
+          message: fd.get("message"),
+        }),
+      });
+      if (!res.ok) throw new Error("Submission failed");
+      setApplyDone(true);
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not submit. Please try again." });
+    } finally {
+      setApplySubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const base = (import.meta.env.BASE_URL || "").replace(/\/$/, "");
@@ -169,7 +207,11 @@ export default function Home() {
             <p className="text-muted-foreground text-lg">{t.home.studiosDesc}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={
+            (centersData?.centers?.length ?? 0) === 1 ? "flex justify-center" :
+            (centersData?.centers?.length ?? 0) === 2 ? "grid grid-cols-1 md:grid-cols-2 max-w-3xl mx-auto gap-8" :
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          }>
             {centersData?.centers?.slice(0, 3).map((center, idx) => (
               <motion.div
                 key={center.id}
@@ -177,6 +219,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
+                className={(centersData?.centers?.length ?? 0) === 1 ? "w-full max-w-sm" : ""}
               >
                 <Card className="overflow-hidden premium-shadow group cursor-pointer hover:-translate-y-1 transition-all duration-300">
                   <div className="h-48 bg-muted relative overflow-hidden">
@@ -242,7 +285,8 @@ export default function Home() {
                       <img
                         src={teacher.photoUrl}
                         alt={teacher.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        style={{ objectPosition: (teacher as any).photoPosition || "50% 20%" }}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl font-bold text-primary/20 bg-gradient-to-br from-primary/5 to-secondary/10">
@@ -356,19 +400,15 @@ export default function Home() {
                           <Award className="w-3 h-3 inline mr-1" />IYTTC
                         </span>
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${program.badge}`}>
-                          <BookOpen className="w-3 h-3 inline mr-1" />YOGA LIFE VN
+                          <BookOpen className="w-3 h-3 inline mr-1" />YOGA LIFE INTERNATIONAL
                         </span>
                       </div>
-                      <div className="flex gap-2">
-                        <Link href="/register" className="flex-1">
-                          <Button className={`w-full h-11 rounded-xl text-sm ${program.popular ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}>
-                            {t.home.trainingApply}
-                          </Button>
-                        </Link>
-                        <Button variant="outline" className={`h-11 px-4 rounded-xl text-sm border ${program.borderAccent} ${program.textAccent}`}>
-                          {t.home.trainingLearn}
-                        </Button>
-                      </div>
+                      <Button
+                        className={`w-full h-11 rounded-xl text-sm ${program.popular ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-primary hover:bg-primary/90 text-primary-foreground"}`}
+                        onClick={() => { setApplyDone(false); setApplyProgram({ hours: program.hours, title: t.home[titleKey] as string }); }}
+                      >
+                        {t.home.trainingApply}
+                      </Button>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -416,11 +456,68 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-card py-12 border-t border-border mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Logo" className="w-12 h-12 mx-auto mb-6 opacity-80 grayscale" />
+          <img src={logoUrl} alt="Logo" className="w-12 h-12 mx-auto mb-6 opacity-80 grayscale" />
           <p className="text-muted-foreground font-serif text-xl mb-4">Find your center. Breathe. Live.</p>
-          <p className="text-sm text-muted-foreground/60">© {new Date().getFullYear()} YOGA LIFE VN. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground/60">© {new Date().getFullYear()} YOGA LIFE INTERNATIONAL. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Teacher Training Apply Dialog */}
+      <Dialog open={!!applyProgram} onOpenChange={open => { if (!open) setApplyProgram(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">
+              Apply — {applyProgram?.hours}H {applyProgram?.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          {applyDone ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-serif text-xl font-bold">Application Received!</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Thank you for your interest. Our team will review your application and contact you personally within 1–2 business days.
+              </p>
+              <Button className="w-full" onClick={() => setApplyProgram(null)}>Close</Button>
+            </div>
+          ) : (
+            <form onSubmit={handleApplySubmit} className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Fill in your details and we'll get in touch to guide you through the next steps.
+              </p>
+              <div className="space-y-1.5">
+                <Label>Full Name <span className="text-destructive">*</span></Label>
+                <Input name="fullName" placeholder="Your full name" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email Address <span className="text-destructive">*</span></Label>
+                <Input name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone Number <span className="text-destructive">*</span></Label>
+                <Input name="phone" placeholder="0901 234 567" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Message (optional)</Label>
+                <Textarea
+                  name="message"
+                  placeholder="Tell us a bit about yourself, your yoga experience, or any questions you have…"
+                  className="resize-none h-24"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setApplyProgram(null)}>Cancel</Button>
+                <Button type="submit" className="flex-1" disabled={applySubmitting}>
+                  {applySubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                  {applySubmitting ? "Sending…" : "Send Application"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

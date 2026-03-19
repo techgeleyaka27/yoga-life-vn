@@ -54,19 +54,37 @@ router.get("/enrollments", requireAuth, async (req, res) => {
 router.post("/enrollments", requireAuth, async (req, res) => {
   try {
     const reqUserId = (req as any).userId;
-    const { userId, membershipId, startDate, amountPaid } = req.body;
+    const { userId, membershipId, startDate, endDate, amountPaid, debtAmount, paymentMethod, salesPerson, packageDurationMonths, status } = req.body;
+
+    // Role check: students can only enroll themselves
+    const [requester] = await db.select({ role: usersTable.role }).from(usersTable).where(eq(usersTable.id, reqUserId)).limit(1);
+    if (requester?.role === "student" && userId && Number(userId) !== reqUserId) {
+      res.status(403).json({ error: "You can only purchase memberships for your own account" });
+      return;
+    }
+
     const targetUserId = userId || reqUserId;
 
     const [membership] = await db.select().from(membershipsTable).where(eq(membershipsTable.id, membershipId)).limit(1);
     if (!membership) { res.status(404).json({ error: "Membership not found" }); return; }
 
     const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(end.getDate() + membership.durationDays);
+    let end: Date;
+    if (endDate) {
+      end = new Date(endDate);
+    } else {
+      end = new Date(start);
+      end.setDate(end.getDate() + membership.durationDays);
+    }
 
     const [enrollment] = await db.insert(enrollmentsTable).values({
       userId: targetUserId, membershipId, startDate: start, endDate: end,
-      status: "active", amountPaid,
+      status: status ?? "active",
+      amountPaid: amountPaid ?? 0,
+      debtAmount: debtAmount ?? 0,
+      paymentMethod: paymentMethod ?? null,
+      salesPerson: salesPerson ?? null,
+      packageDurationMonths: packageDurationMonths ?? 1,
     }).returning();
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, targetUserId)).limit(1);
@@ -80,6 +98,10 @@ router.post("/enrollments", requireAuth, async (req, res) => {
       centerId: membership.centerId, centerName: center?.name ?? "",
       startDate: enrollment.startDate.toISOString(), endDate: enrollment.endDate.toISOString(),
       status: enrollment.status, amountPaid: enrollment.amountPaid,
+      debtAmount: enrollment.debtAmount ?? 0,
+      paymentMethod: enrollment.paymentMethod ?? null,
+      salesPerson: enrollment.salesPerson ?? null,
+      packageDurationMonths: enrollment.packageDurationMonths ?? 1,
       createdAt: enrollment.createdAt.toISOString(),
     });
   } catch (err) {

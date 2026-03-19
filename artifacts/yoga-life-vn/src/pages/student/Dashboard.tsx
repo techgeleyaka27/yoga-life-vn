@@ -4,20 +4,31 @@ import { useListEnrollments, useListClasses } from "@workspace/api-client-react"
 import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Calendar, User, CreditCard, Clock, Activity } from "lucide-react";
+import { Calendar, User, CreditCard, Clock, Activity, Wifi, MapPin, Sparkles, Zap, Video, BookOpen } from "lucide-react";
 import { Link } from "wouter";
+
+const ACCESS_META: Record<string, { label: string; icon: any; color: string; bg: string; canOnline: boolean; canOffline: boolean }> = {
+  online:   { label: "Online Only",       icon: Wifi,     color: "text-blue-600",   bg: "bg-blue-50 border-blue-200",   canOnline: true,  canOffline: false },
+  offline:  { label: "In-Studio Only",    icon: MapPin,   color: "text-green-600",  bg: "bg-green-50 border-green-200", canOnline: false, canOffline: true  },
+  both:     { label: "Online + Studio",   icon: Sparkles, color: "text-primary",    bg: "bg-primary/5 border-primary/20", canOnline: true, canOffline: true },
+  drop_in:  { label: "Drop-In",           icon: Zap,      color: "text-orange-500", bg: "bg-orange-50 border-orange-200", canOnline: false, canOffline: true },
+};
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { t } = useLang();
   
-  // In a real scenario, we'd fetch enrollments for this specific user
-  // The API spec has `userId` as a query param
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useListEnrollments({ userId: user?.id });
-  const { data: classesData } = useListClasses(); // Ideally filtered by centerId if user belongs to one
+  const { data: classesData } = useListClasses();
 
-  const activeEnrollment = enrollmentsData?.enrollments?.find(e => e.status === 'active');
+  const activeEnrollments = (enrollmentsData?.enrollments || []).filter((e: any) => e.status === "active");
+  const activeEnrollment = activeEnrollments[0];
+  const membershipType = (activeEnrollment as any)?.membershipType ?? null;
+  const accessMeta = membershipType ? ACCESS_META[membershipType] ?? null : null;
+
+  const upcomingClasses = (classesData?.classes || []).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -36,7 +47,7 @@ export default function StudentDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Membership Info */}
-          <div className="lg:col-span-1 space-y-8">
+          <div className="lg:col-span-1 space-y-6">
             <Card className="border-none premium-shadow bg-card overflow-hidden">
               <div className="h-2 bg-primary w-full" />
               <CardHeader>
@@ -53,7 +64,36 @@ export default function StudentDashboard() {
                       <h4 className="font-bold text-lg text-primary">{activeEnrollment.membershipName}</h4>
                       <p className="text-sm text-muted-foreground">{activeEnrollment.centerName}</p>
                     </div>
-                    <div className="space-y-2 text-sm">
+
+                    {/* Access level badge */}
+                    {accessMeta && (
+                      <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border ${accessMeta.bg}`}>
+                        <accessMeta.icon className={`w-4 h-4 shrink-0 ${accessMeta.color}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-semibold uppercase tracking-wider ${accessMeta.color}`}>Your Access</p>
+                          <p className="text-sm font-bold text-foreground">{accessMeta.label}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* What you can do */}
+                    {accessMeta && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">With this plan you can:</p>
+                        <div className="space-y-1.5">
+                          <div className={`flex items-center gap-2 text-sm ${accessMeta.canOnline ? "text-foreground" : "text-muted-foreground/50 line-through"}`}>
+                            <Video className="w-3.5 h-3.5 shrink-0" />
+                            Watch online classes on-demand
+                          </div>
+                          <div className={`flex items-center gap-2 text-sm ${accessMeta.canOffline ? "text-foreground" : "text-muted-foreground/50 line-through"}`}>
+                            <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                            Book in-studio classes
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 text-sm border-t pt-3">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">{t.dashboard.status}</span>
                         <span className="text-green-600 font-medium uppercase tracking-wider text-xs">{t.dashboard.active}</span>
@@ -64,6 +104,24 @@ export default function StudentDashboard() {
                           {format(new Date(activeEnrollment.endDate), "MMM dd, yyyy")}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Quick action buttons */}
+                    <div className="flex flex-col gap-2 pt-1">
+                      {accessMeta?.canOnline && (
+                        <Link href="/online-classes">
+                          <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                            <Video className="w-4 h-4" />Watch Online Classes
+                          </Button>
+                        </Link>
+                      )}
+                      {accessMeta?.canOffline && (
+                        <Link href="/classes">
+                          <Button size="sm" variant="outline" className="w-full justify-start gap-2 text-green-600 border-green-200 hover:bg-green-50">
+                            <BookOpen className="w-4 h-4" />Book a Studio Class
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -115,33 +173,30 @@ export default function StudentDashboard() {
                 </Link>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {!classesData?.classes?.length ? (
-                    <p className="text-muted-foreground text-center py-8">{t.dashboard.noClasses}</p>
-                  ) : (
-                    classesData.classes.slice(0, 4).map((cls) => (
-                      <div key={cls.id} className="flex items-center justify-between p-4 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-lg bg-secondary/30 flex flex-col items-center justify-center text-secondary-foreground shrink-0">
-                            <span className="text-xs font-bold uppercase">{cls.dayOfWeek.slice(0, 3)}</span>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-foreground">{cls.name}</h4>
-                            <div className="flex items-center text-xs text-muted-foreground mt-1">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {cls.startTime} - {cls.endTime}
-                              <span className="mx-2">•</span>
-                              {cls.level.replace('_', ' ')}
-                            </div>
-                          </div>
+                {upcomingClasses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-50" />
+                    <p className="text-muted-foreground text-sm">{t.dashboard.noUpcomingClasses}</p>
+                    <Link href="/classes">
+                      <Button variant="outline" className="mt-4">{t.dashboard.viewFullSchedule}</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingClasses.map((cls: any) => (
+                      <div key={cls.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Clock className="w-5 h-5 text-primary" />
                         </div>
-                        <Button variant="outline" size="sm" className="hidden sm:flex">
-                          {t.dashboard.bookSpot}
-                        </Button>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">{cls.name}</p>
+                          <p className="text-xs text-muted-foreground">{cls.dayOfWeek} · {cls.startTime}–{cls.endTime}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs shrink-0">{cls.style}</Badge>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -12,7 +12,7 @@ router.get("/content/hero", async (_req, res) => {
     if (!hero) {
       return res.json({
         headline: "Find Your Inner Peace",
-        subheadline: "Join YOGA LIFE VN for a transformative yoga journey. Expert instructors, multiple centers across Vietnam.",
+        subheadline: "Join YOGA LIFE INTERNATIONAL for a transformative yoga journey. Expert instructors, multiple centers across Vietnam.",
         ctaText: "Start Your Journey",
         imageUrl: null,
       });

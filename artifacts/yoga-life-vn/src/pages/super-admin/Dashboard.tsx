@@ -28,7 +28,7 @@ export default function SuperAdminDashboard() {
   const centers = centersData?.centers || [];
   const allEnrollments = enrollmentsData?.enrollments || [];
   const revenueByCenter = centers.map(c => ({
-    name: c.name.replace("YOGA LIFE VN - ", "").replace("YOGA LIFE VN PREMIUM", "PREMIUM"),
+    name: c.name.replace("YOGA LIFE INTERNATIONAL - ", "").replace("YOGA LIFE INTERNATIONAL PREMIUM", "PREMIUM").replace("YOGA LIFE VN - ", "").replace("YOGA LIFE VN PREMIUM", "PREMIUM"),
     revenue: allEnrollments
       .filter((e: any) => e.centerName === c.name)
       .reduce((sum: number, e: any) => sum + (e.amountPaid || 0), 0) / 1000,
